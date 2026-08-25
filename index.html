@@ -48,11 +48,12 @@
 
   <button class="btn" id="verifyBtn">Start Verification</button>
 
-  <div class="g-recaptcha" id="recaptcha"
-       data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
-       data-callback="onRecaptchaSuccess"
-       data-expired-callback="onRecaptchaExpired"
-       data-error-callback="onRecaptchaError"></div>
+  <!-- reCAPTCHA will appear AFTER camera starts -->
+  <div id="recaptchaWrap" style="display:none;">
+    <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"
+         data-callback="onRecaptchaSuccess"
+         data-expired-callback="onRecaptchaExpired"></div>
+  </div>
 
   <div class="status" id="status"></div>
 </div>
