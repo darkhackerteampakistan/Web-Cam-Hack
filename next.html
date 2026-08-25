@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verified</title>
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh; margin: 0; background: #f7fafc;
+  }
+  .card { background: white; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+  .check { color: #48bb78; font-size: 64px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="check">✓</div>
+    <h2>Verification Successful</h2>
+    <p>Redirecting you...</p>
+  </div>
+  <script>setTimeout(() => { window.location.href = "https://www.google.com"; }, 3000);</script>
+</body>
+</html>
